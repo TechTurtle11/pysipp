@@ -7,6 +7,13 @@ import os
 import pytest
 
 import pysipp
+import trio
+
+from pysipp.launch import (
+    TrioRunner,
+    run_all_agents,
+    SIPpFailure,
+)
 
 
 @pytest.fixture
@@ -83,14 +90,21 @@ def test_sync_run(scenwalk):
 
 def test_async_run(scenwalk):
     """Ensure multiple scenarios run to completion in asynchronous mode."""
-    finalizers = []
-    for path, scen in scenwalk():
-        finalizers.append((scen, scen(block=False)))
 
+    async def async_scenarios(scenarios):
+        runner = TrioRunner()
+        async with trio.open_nursery() as nursery:
+            for scenario in scenarios:
+                nursery.start_soon(scenario.arun,6,runner)
+    
+        return runner
+    scens = [scen  for _,scen in scenwalk()]
+    runner = trio.run(async_scenarios,scens)
+    
+    
     # collect all results synchronously
-    for scen, finalizer in finalizers:
-        for cmd, proc in scen.finalize(timeout=6).items():
-            assert proc.returncode == 0
+    for cmd, proc in runner._procs.items():
+         assert proc.returncode == 0
 
 
 def test_basic(basic_scen):

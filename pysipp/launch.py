@@ -165,7 +165,7 @@ async def run_all_agents(
     agents,
     timeout=180,
 ) -> TrioRunner:
-    """Run a sequencec of agents using a ``TrioRunner``."""
+    """Run a sequence of agents using a ``TrioRunner``."""
 
     async def finalize():
         # this might raise TimeoutError
